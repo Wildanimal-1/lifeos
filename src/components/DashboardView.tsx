@@ -1,0 +1,180 @@
+import { Mail, Calendar, BookOpen, FileText, Download } from 'lucide-react';
+
+interface DashboardViewProps {
+  executionPlan?: string;
+  finalSummary?: string;
+  dashboardSnapshot?: any;
+  auditLog?: any[];
+}
+
+export function DashboardView({ executionPlan, finalSummary, dashboardSnapshot, auditLog }: DashboardViewProps) {
+  const downloadCSV = (csv: string, filename: string) => {
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  if (!dashboardSnapshot) {
+    return (
+      <div className="text-center py-12 text-gray-500">
+        <p>No execution results yet. Enter a command above to get started.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full max-w-6xl mx-auto space-y-6">
+      {executionPlan && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 className="font-semibold text-blue-900 mb-2">Execution Plan</h3>
+          <p className="text-blue-800 text-sm">{executionPlan}</p>
+        </div>
+      )}
+
+      {finalSummary && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <h3 className="font-semibold text-green-900 mb-2">Summary</h3>
+          <p className="text-green-800 text-sm">{finalSummary}</p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {dashboardSnapshot.email_summary && (
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Mail className="w-5 h-5 text-blue-600" />
+              <h3 className="font-semibold">Email Summary</h3>
+            </div>
+            <div className="space-y-2 text-sm">
+              <p>
+                <span className="text-gray-600">Urgent emails:</span>{' '}
+                <span className="font-medium">{dashboardSnapshot.email_summary.top_urgent.length}</span>
+              </p>
+              <p>
+                <span className="text-gray-600">Drafts created:</span>{' '}
+                <span className="font-medium">{dashboardSnapshot.email_summary.drafts_count}</span>
+              </p>
+              <p>
+                <span className="text-gray-600">Replies sent:</span>{' '}
+                <span className="font-medium">{dashboardSnapshot.email_summary.replies_sent}</span>
+              </p>
+            </div>
+          </div>
+        )}
+
+        {dashboardSnapshot.calendar_summary && (
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar className="w-5 h-5 text-green-600" />
+              <h3 className="font-semibold">Calendar Summary</h3>
+            </div>
+            <div className="space-y-2 text-sm">
+              <p>
+                <span className="text-gray-600">Events today:</span>{' '}
+                <span className="font-medium">{dashboardSnapshot.calendar_summary.events_today}</span>
+              </p>
+              <p>
+                <span className="text-gray-600">Proposed changes:</span>{' '}
+                <span className="font-medium">{dashboardSnapshot.calendar_summary.proposed_changes}</span>
+              </p>
+            </div>
+          </div>
+        )}
+
+        {dashboardSnapshot.study_summary && (
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <BookOpen className="w-5 h-5 text-purple-600" />
+              <h3 className="font-semibold">Study Plan</h3>
+            </div>
+            <div className="space-y-2 text-sm">
+              <p>
+                <span className="text-gray-600">Subject:</span>{' '}
+                <span className="font-medium">{dashboardSnapshot.study_summary.subject}</span>
+              </p>
+              <p>
+                <span className="text-gray-600">Days planned:</span>{' '}
+                <span className="font-medium">{dashboardSnapshot.study_summary.days_planned}</span>
+              </p>
+              <p>
+                <span className="text-gray-600">Flashcards:</span>{' '}
+                <span className="font-medium">{dashboardSnapshot.study_summary.flashcards_count}</span>
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {dashboardSnapshot.email_summary?.top_urgent?.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <h3 className="font-semibold mb-3 flex items-center gap-2">
+            <Mail className="w-5 h-5 text-red-600" />
+            Urgent Emails
+          </h3>
+          <div className="space-y-3">
+            {dashboardSnapshot.email_summary.top_urgent.map((email: any) => (
+              <div key={email.id} className="border-l-4 border-red-500 pl-3 py-2">
+                <p className="font-medium text-sm">{email.subject}</p>
+                <p className="text-xs text-gray-600">From: {email.from}</p>
+                <p className="text-xs text-gray-500 mt-1">{email.snippet}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {dashboardSnapshot.quick_actions?.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <h3 className="font-semibold mb-3 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-blue-600" />
+            Quick Actions
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {dashboardSnapshot.quick_actions.map((action: any, idx: number) => (
+              <button
+                key={idx}
+                onClick={() => {
+                  if (action.type === 'download_csv' && action.data?.csv) {
+                    downloadCSV(action.data.csv, 'flashcards.csv');
+                  }
+                }}
+                className="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg text-sm text-left transition-colors"
+              >
+                {action.type === 'download_csv' && <Download className="w-4 h-4" />}
+                {action.type === 'email_draft' && <Mail className="w-4 h-4" />}
+                {action.type === 'calendar_proposal' && <Calendar className="w-4 h-4" />}
+                {action.type === 'study_schedule' && <BookOpen className="w-4 h-4" />}
+                <span>{action.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {auditLog && auditLog.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <h3 className="font-semibold mb-3">Audit Log</h3>
+          <div className="space-y-2">
+            {auditLog.map((log, idx) => (
+              <div key={idx} className="text-sm border-l-2 border-gray-300 pl-3 py-1">
+                <p className="font-medium text-gray-900">
+                  {log.agent} - {log.action}
+                </p>
+                {log.output_summary && (
+                  <p className="text-gray-600 text-xs mt-1">{log.output_summary}</p>
+                )}
+                <p className="text-gray-400 text-xs mt-1">
+                  {new Date(log.timestamp).toLocaleString()}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
