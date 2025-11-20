@@ -11,6 +11,7 @@ export function VoiceMode({ onTranscript, loading }: VoiceModeProps) {
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState('');
   const recognitionRef = useRef<any>(null);
+  const transcriptRef = useRef<string>('');
 
   const startListening = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -29,6 +30,7 @@ export function VoiceMode({ onTranscript, loading }: VoiceModeProps) {
       setIsListening(true);
       setError('');
       setTranscript('');
+      transcriptRef.current = '';
     };
 
     recognition.onresult = (event: any) => {
@@ -44,7 +46,9 @@ export function VoiceMode({ onTranscript, loading }: VoiceModeProps) {
         }
       }
 
-      setTranscript(finalTranscript + interimTranscript);
+      const fullTranscript = finalTranscript + interimTranscript;
+      transcriptRef.current = fullTranscript;
+      setTranscript(fullTranscript);
     };
 
     recognition.onerror = (event: any) => {
