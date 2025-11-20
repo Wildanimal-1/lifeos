@@ -139,18 +139,22 @@ export function DashboardView({ executionPlan, finalSummary, dashboardSnapshot, 
     doc.addPage();
     yPosition = 20;
     addText('Demo Screenshots', 14, true);
-    addText('See included screenshots for UI examples:', 10);
-    addText('- Screenshot 2025-11-19 000434.png: Main dashboard', 9);
-    addText('- Screenshot 2025-11-19 000416.png: Command interface', 9);
-    addText('- Screenshot 2025-11-19 000426.png: Calendar management', 9);
+    addText('Visual examples available at /public/screenshots/', 10);
+    yPosition += 5;
+    addText('Available screenshots:', 10, true);
+    addText('- dashboard-main.png: Main dashboard interface', 9);
+    addText('- command-interface.png: Natural language command input', 9);
+    addText('- calendar-management.png: Calendar optimization view', 9);
+    addText('- execution-results.png: Complete execution results', 9);
     yPosition += 10;
 
     doc.setFontSize(8);
     doc.setTextColor(100, 100, 100);
-    doc.text('Note: Screenshots are available in the public/ folder of the project', 20, yPosition);
-    doc.text('Reference: /mnt/data/fbbd3259-3036-4f9f-96c3-5158fc444afa.png', 20, yPosition + 5);
+    doc.text('Note: For PDF with embedded screenshots, use browser Print (Ctrl+P) instead', 20, yPosition);
+    yPosition += 5;
+    doc.text('Screenshots are accessible in the web interface after running any command', 20, yPosition);
 
-    doc.save('lifeos-report.pdf');
+    doc.save('lifeos-demo-report.pdf');
   };
 
   if (!dashboardSnapshot) {
@@ -322,6 +326,69 @@ export function DashboardView({ executionPlan, finalSummary, dashboardSnapshot, 
           </div>
         </div>
       )}
+
+      <div className="bg-white border border-gray-200 rounded-lg p-6 no-print">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <FileText className="w-5 h-5 text-gray-600" />
+          Demo Screenshots
+        </h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Visual examples of the LifeOS interface for judges and evaluators:
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <img
+              src="/screenshots/dashboard-main.png"
+              alt="Main Dashboard"
+              className="w-full border border-gray-300 rounded-lg shadow-sm"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+              }}
+            />
+            <p className="text-xs text-gray-500 mt-2 text-center">Main Dashboard</p>
+          </div>
+          <div>
+            <img
+              src="/screenshots/command-interface.png"
+              alt="Command Interface"
+              className="w-full border border-gray-300 rounded-lg shadow-sm"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+              }}
+            />
+            <p className="text-xs text-gray-500 mt-2 text-center">Command Interface</p>
+          </div>
+          <div>
+            <img
+              src="/screenshots/calendar-management.png"
+              alt="Calendar Management"
+              className="w-full border border-gray-300 rounded-lg shadow-sm"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+              }}
+            />
+            <p className="text-xs text-gray-500 mt-2 text-center">Calendar Management</p>
+          </div>
+          <div>
+            <img
+              src="/screenshots/execution-results.png"
+              alt="Execution Results"
+              className="w-full border border-gray-300 rounded-lg shadow-sm"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+              }}
+            />
+            <p className="text-xs text-gray-500 mt-2 text-center">Execution Results</p>
+          </div>
+        </div>
+        <p className="text-xs text-gray-400 mt-4">
+          Note: Use browser Print (Ctrl+P / Cmd+P) to generate PDF with screenshots included
+        </p>
+      </div>
 
       {selectedDraft && (
         <ComposeModal

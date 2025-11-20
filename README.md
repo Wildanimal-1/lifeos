@@ -8,14 +8,21 @@ LifeOS is an intelligent multi-agent orchestration system that automates email t
 
 ## Screenshots
 
-![LifeOS Dashboard](public/Screenshot%202025-11-19%20000434.png)
-*Main dashboard showing execution results*
+### Main Dashboard
+![LifeOS Dashboard](public/screenshots/execution-results.png)
+*Complete execution results with email summary, calendar timeline, and study plan*
 
-![Command Interface](public/Screenshot%202025-11-19%20000416.png)
-*Natural language command input with examples*
+### Command Interface
+![Command Interface](public/screenshots/command-interface.png)
+*Natural language command input with voice mode support and example commands*
 
-![Calendar Management](public/Screenshot%202025-11-19%20000426.png)
-*Calendar optimization and timeline view*
+### Calendar Management
+![Calendar Management](public/screenshots/calendar-management.png)
+*Calendar optimization with deep-work blocks and proposed schedule changes*
+
+### Dashboard Overview
+![Dashboard Overview](public/screenshots/dashboard-main.png)
+*Main dashboard interface with multi-agent orchestration status*
 
 ## New Features (v2.0)
 
