@@ -6,7 +6,9 @@ import { DashboardView } from './components/DashboardView';
 import { AuthForm } from './components/AuthForm';
 import { Settings } from './components/Settings';
 import { InstallPrompt } from './components/InstallPrompt';
-import { Brain, Settings as SettingsIcon, LogOut, History } from 'lucide-react';
+import { Toast } from './components/Toast';
+import { generatePDF } from './lib/pdfExport';
+import { Brain, Settings as SettingsIcon, LogOut, History, FileText } from 'lucide-react';
 
 function App() {
   const [user, setUser] = useState<any>(null);
@@ -16,6 +18,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [executions, setExecutions] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info'; link?: string } | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -145,6 +148,73 @@ function App() {
     }
   };
 
+  const handleExportPDF = async (executionId?: string) => {
+    try {
+      let executionData;
+      let auditLogs;
+
+      if (executionId) {
+        const { data: execution } = await supabase
+          .from('executions')
+          .select('*')
+          .eq('id', executionId)
+          .single();
+
+        const { data: logs } = await supabase
+          .from('audit_logs')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('timestamp', { ascending: true });
+
+        executionData = execution;
+        auditLogs = logs;
+      } else if (result) {
+        const { data: execution } = await supabase
+          .from('executions')
+          .select('*')
+          .eq('id', result.execution_id)
+          .single();
+
+        executionData = execution;
+        auditLogs = result.audit_log;
+      } else {
+        setToast({
+          message: 'No execution available. Run a command first.',
+          type: 'error'
+        });
+        return;
+      }
+
+      if (!executionData) {
+        setToast({
+          message: 'Failed to load execution data',
+          type: 'error'
+        });
+        return;
+      }
+
+      const filename = generatePDF({
+        executionPlan: executionData.execution_plan,
+        finalSummary: executionData.final_summary,
+        dashboardSnapshot: executionData.dashboard_snapshot,
+        auditLog: auditLogs || [],
+        userCommand: executionData.user_command,
+        createdAt: executionData.created_at,
+        demoMode: userContext?.demo_mode
+      });
+
+      setToast({
+        message: `PDF generated: ${filename}`,
+        type: 'success'
+      });
+    } catch (error: any) {
+      setToast({
+        message: `Failed to generate PDF: ${error.message}`,
+        type: 'error'
+      });
+    }
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 flex items-center justify-center p-4">
@@ -176,6 +246,16 @@ function App() {
             )}
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleExportPDF()}
+              disabled={!result}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              aria-label={!result ? "No snapshot available — run a command first" : "Export Weekly PDF"}
+              title={!result ? "No snapshot available — run a command first" : "Export Weekly PDF"}
+            >
+              <FileText className="w-5 h-5" />
+              <span className="hidden sm:inline">Export PDF</span>
+            </button>
             <button
               onClick={() => {
                 setShowHistory(!showHistory);
@@ -218,23 +298,39 @@ function App() {
             ) : (
               <div className="space-y-2">
                 {executions.map((exec) => (
-                  <button
+                  <div
                     key={exec.id}
-                    onClick={() => loadExecution(exec.id)}
-                    className="w-full text-left px-4 py-3 border border-gray-200 hover:bg-gray-50 rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                   >
-                    <p className="font-medium text-sm">{exec.user_command}</p>
-                    <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
-                      <span className={`px-2 py-0.5 rounded ${
-                        exec.status === 'completed' ? 'bg-green-100 text-green-800' :
-                        exec.status === 'failed' ? 'bg-red-100 text-red-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {exec.status}
-                      </span>
-                      <span>{new Date(exec.created_at).toLocaleString()}</span>
-                    </div>
-                  </button>
+                    <button
+                      onClick={() => loadExecution(exec.id)}
+                      className="flex-1 text-left"
+                    >
+                      <p className="font-medium text-sm">{exec.user_command}</p>
+                      <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
+                        <span className={`px-2 py-0.5 rounded ${
+                          exec.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          exec.status === 'failed' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {exec.status}
+                        </span>
+                        <span>{new Date(exec.created_at).toLocaleString()}</span>
+                      </div>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleExportPDF(exec.id);
+                      }}
+                      className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors"
+                      aria-label="Export PDF for this execution"
+                      title="Export PDF for this execution"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">PDF</span>
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -283,6 +379,15 @@ function App() {
       </footer>
 
       <InstallPrompt />
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          link={toast.link}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }
