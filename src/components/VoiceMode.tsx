@@ -53,6 +53,10 @@ export function VoiceMode({ onTranscript, loading }: VoiceModeProps) {
 
     recognition.onend = () => {
       setIsListening(false);
+      const finalText = transcriptRef.current.trim();
+      if (finalText) {
+        onTranscript(finalText);
+      }
     };
 
     recognitionRef.current = recognition;
@@ -62,10 +66,6 @@ export function VoiceMode({ onTranscript, loading }: VoiceModeProps) {
   const stopListening = () => {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
-      setIsListening(false);
-      if (transcript.trim()) {
-        onTranscript(transcript.trim());
-      }
     }
   };
 
