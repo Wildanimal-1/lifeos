@@ -268,16 +268,242 @@ When OAuth not connected:
 - ML midterm study notes (7 weeks)
 - Auto-generated deep-work blocks
 
+## Channel Integrations
+
+LifeOS supports multiple communication channels for notifications and command input. This section describes how to enable WhatsApp/SMS via Twilio and Gmail access via OAuth.
+
+### WhatsApp & SMS (via Twilio)
+
+#### Prerequisites
+1. **Twilio Account**: Sign up at [twilio.com](https://www.twilio.com/try-twilio)
+2. **Twilio Phone Number**: Purchase a phone number with SMS/WhatsApp capabilities
+3. **WhatsApp Business API Approval**: Required for WhatsApp messaging (see warnings below)
+
+#### Environment Variables
+
+Add these to your `.env` file:
+
+```env
+# Twilio Configuration
+VITE_TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+VITE_TWILIO_AUTH_TOKEN=your_auth_token
+VITE_TWILIO_PHONE_NUMBER=+1234567890
+VITE_TWILIO_WHATSAPP_NUMBER=whatsapp:+1234567890
+```
+
+#### Setup Steps
+
+1. **Get Twilio Credentials**
+   - Log in to [Twilio Console](https://console.twilio.com)
+   - Copy your Account SID and Auth Token from the dashboard
+   - Note your purchased phone number
+
+2. **Configure Phone Number**
+   - Navigate to Phone Numbers → Manage → Active Numbers
+   - Select your number
+   - Under "Messaging Configuration", set webhook URL (if using edge functions)
+   - Enable SMS and/or WhatsApp capabilities
+
+3. **Test SMS**
+   ```bash
+   # Send test message via Twilio CLI
+   twilio api:core:messages:create \
+     --from "+1234567890" \
+     --to "+your-phone" \
+     --body "LifeOS test message"
+   ```
+
+#### WhatsApp Business API Warnings
+
+⚠️ **Important Considerations for WhatsApp:**
+
+- **Sandbox Mode**: Twilio provides a WhatsApp sandbox for testing. Users must opt-in by sending a code to the sandbox number.
+- **Production Access**: Requires WhatsApp Business API approval from Meta (formerly Facebook)
+- **Approval Process**: Can take 1-2 weeks and requires business verification
+- **Message Templates**: Production WhatsApp requires pre-approved message templates for outbound messages
+- **Pricing**: WhatsApp messages are priced differently from SMS (check Twilio pricing)
+- **Rate Limits**: WhatsApp has stricter rate limits than SMS
+- **24-Hour Window**: Can only send template messages outside 24-hour customer service window
+
+**For Testing**: Use [Twilio Sandbox for WhatsApp](https://www.twilio.com/console/sms/whatsapp/sandbox) to test without approval.
+
+**For Production**: Apply for WhatsApp Business API access through [Twilio Console](https://www.twilio.com/console/sms/whatsapp/senders).
+
+#### SMS vs WhatsApp Comparison
+
+| Feature | SMS | WhatsApp |
+|---------|-----|----------|
+| Setup Time | Immediate | Days to weeks (approval) |
+| Cost | ~$0.0075/msg | ~$0.005/msg (varies by country) |
+| Rich Media | No | Yes (images, documents) |
+| Delivery Status | Basic | Read receipts |
+| Rate Limits | High | Moderate |
+| Approval Required | No | Yes (production) |
+
+### Gmail OAuth Integration
+
+#### Prerequisites
+1. **Google Cloud Project**: Create at [console.cloud.google.com](https://console.cloud.google.com)
+2. **Gmail API Access**: Enable Gmail API in your project
+3. **OAuth 2.0 Credentials**: Create OAuth client ID
+
+#### Environment Variables
+
+Add these to your `.env` file:
+
+```env
+# Gmail OAuth Configuration
+VITE_GOOGLE_CLIENT_ID=your_client_id.apps.googleusercontent.com
+VITE_GOOGLE_CLIENT_SECRET=your_client_secret
+VITE_GOOGLE_REDIRECT_URI=http://localhost:5173/auth/callback
+```
+
+#### Setup Steps
+
+1. **Create Google Cloud Project**
+   - Go to [Google Cloud Console](https://console.cloud.google.com)
+   - Create a new project or select existing one
+   - Enable billing (required for production use)
+
+2. **Enable Gmail API**
+   - Navigate to "APIs & Services" → "Library"
+   - Search for "Gmail API"
+   - Click "Enable"
+
+3. **Configure OAuth Consent Screen**
+   - Go to "APIs & Services" → "OAuth consent screen"
+   - Choose "External" user type (or "Internal" for Google Workspace)
+   - Fill in required fields:
+     - App name: "LifeOS"
+     - User support email: your-email@example.com
+     - Developer contact: your-email@example.com
+   - Add scopes:
+     - `https://www.googleapis.com/auth/gmail.readonly` (read emails)
+     - `https://www.googleapis.com/auth/gmail.send` (send emails)
+     - `https://www.googleapis.com/auth/gmail.modify` (draft emails)
+   - Add test users (your email addresses for testing)
+
+4. **Create OAuth 2.0 Credentials**
+   - Go to "APIs & Services" → "Credentials"
+   - Click "Create Credentials" → "OAuth client ID"
+   - Application type: "Web application"
+   - Name: "LifeOS Web Client"
+   - Authorized JavaScript origins:
+     - `http://localhost:5173` (development)
+     - `https://yourdomain.com` (production)
+   - Authorized redirect URIs:
+     - `http://localhost:5173/auth/callback` (development)
+     - `https://yourdomain.com/auth/callback` (production)
+   - Copy Client ID and Client Secret
+
+5. **Update Environment Variables**
+   ```env
+   VITE_GOOGLE_CLIENT_ID=123456789-abc.apps.googleusercontent.com
+   VITE_GOOGLE_CLIENT_SECRET=GOCSPX-xxxxxxxxxxxxxx
+   VITE_GOOGLE_REDIRECT_URI=http://localhost:5173/auth/callback
+   ```
+
+6. **Test OAuth Flow**
+   - Restart your development server
+   - Click "Connect Gmail" in Settings
+   - Authorize the app with your Google account
+   - Verify emails appear in dashboard
+
+#### OAuth Scopes Explained
+
+| Scope | Purpose | Access Level |
+|-------|---------|--------------|
+| `gmail.readonly` | Read emails for triage | Read-only |
+| `gmail.send` | Send drafted replies | Write |
+| `gmail.modify` | Create drafts, mark as read | Read/Write |
+| `gmail.labels` | Organize with labels | Write |
+
+**Recommended**: Start with `gmail.readonly` for testing, add write scopes as needed.
+
+#### Publishing Your App
+
+⚠️ **Unverified App Warning**: During development, users will see an "unverified app" warning when authorizing. To remove this:
+
+1. **Submit for Verification** (Google's OAuth App Verification)
+   - Navigate to OAuth consent screen
+   - Click "Publish App"
+   - Submit for verification if using sensitive scopes
+   - Verification takes 4-6 weeks
+   - Requires privacy policy and homepage URLs
+
+2. **Requirements for Verification**
+   - Published privacy policy (must include data handling practices)
+   - Published terms of service
+   - Homepage with clear description
+   - Domain verification
+   - Video demo of OAuth flow
+   - Justification for each scope requested
+
+3. **Testing Without Verification**
+   - Use "Testing" status during development
+   - Add up to 100 test users manually
+   - Test users can authorize without warnings
+   - No time limit on testing status
+
+#### Gmail API Quotas
+
+| Resource | Free Tier Limit |
+|----------|-----------------|
+| Queries per day | 1,000,000,000 |
+| Queries per 100 seconds | 250 |
+| Send messages per day | 2,000 (per user) |
+
+**Note**: Most LifeOS usage will be well within free tier limits.
+
+### Complete Environment Variables Reference
+
+Here's a complete `.env.example` with all channel integrations:
+
+```env
+# Supabase
+VITE_SUPABASE_URL=https://xxx.supabase.co
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# Twilio (Optional - for SMS/WhatsApp)
+VITE_TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+VITE_TWILIO_AUTH_TOKEN=your_auth_token
+VITE_TWILIO_PHONE_NUMBER=+1234567890
+VITE_TWILIO_WHATSAPP_NUMBER=whatsapp:+1234567890
+
+# Gmail OAuth (Optional - for live email)
+VITE_GOOGLE_CLIENT_ID=123456789-xxx.apps.googleusercontent.com
+VITE_GOOGLE_CLIENT_SECRET=GOCSPX-xxxxxxxxxxxxxx
+VITE_GOOGLE_REDIRECT_URI=http://localhost:5173/auth/callback
+
+# Google Calendar (Optional - for live calendar)
+VITE_GOOGLE_CALENDAR_API_KEY=your_api_key
+```
+
+### Troubleshooting
+
+#### Twilio Issues
+- **"Authentication Error"**: Verify Account SID and Auth Token are correct
+- **"Phone number not verified"**: During trial, verify recipient numbers in Twilio Console
+- **WhatsApp opt-in required**: Sandbox users must send join code first
+- **Message not delivered**: Check Twilio logs in Console for delivery status
+
+#### Gmail OAuth Issues
+- **"Redirect URI mismatch"**: Ensure redirect URI exactly matches in Google Console and `.env`
+- **"Access denied"**: Check OAuth consent screen has correct scopes enabled
+- **"Invalid client"**: Verify Client ID is correct and app isn't deleted
+- **"Unverified app" warning**: Expected during testing; add users as test users or submit for verification
+- **Token expired**: Implement refresh token flow (tokens expire after 1 hour)
+
 ## Future Enhancements
 
-- [ ] Gmail OAuth for live email
 - [ ] Google Calendar API integration
 - [ ] Server-side PDF with Puppeteer
 - [ ] Google Sheets audit sync
-- [ ] Email sending (SMTP)
 - [ ] Multi-language support
 - [ ] Dark mode
 - [ ] Mobile app
+- [ ] Telegram bot integration
+- [ ] Slack notifications
 
 ## Contributing
 
