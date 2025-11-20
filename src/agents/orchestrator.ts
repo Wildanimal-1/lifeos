@@ -130,15 +130,15 @@ export class Orchestrator {
       if (intent.required_agents.includes('EmailAgent')) {
         emailOutput = await this.emailAgent.execute(
           user_context.email_oauth,
-          user_context.auto_send
+          false
         );
 
         const log = await this.logAction(
           user_context.user_id,
           'EmailAgent',
           'triage_and_draft',
-          `Processing inbox with auto_send=${user_context.auto_send}`,
-          `Drafted ${emailOutput.drafts.length} replies, found ${emailOutput.top_urgent.length} urgent emails`
+          `Processing inbox with auto_send=false (enforced), run_id=${executionId}`,
+          `Drafted ${emailOutput.drafts.length} replies (all set to auto_send=false), found ${emailOutput.top_urgent.length} urgent emails`
         );
         auditLogs.push(log);
 
@@ -147,9 +147,9 @@ export class Orchestrator {
             execution_id: executionId,
             to_address: draft.to,
             subject: draft.subject,
-            draft_body: draft.full_draft,
+            draft_body: draft.body,
             priority_score: 5,
-            sent: user_context.auto_send
+            sent: false
           });
         }
       }
@@ -277,7 +277,7 @@ export class Orchestrator {
     const parts: string[] = [];
 
     if (emailOutput) {
-      parts.push(`Drafted ${emailOutput.drafts.length} email replies${autoSend ? ' and sent them' : ' (auto_send=false)'}`);
+      parts.push(`Drafted ${emailOutput.drafts.length} email replies (auto_send=false, review required)`);
     }
 
     if (calendarOutput) {
