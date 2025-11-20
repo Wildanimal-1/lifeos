@@ -34,10 +34,16 @@ LifeOS is an intelligent multi-agent orchestration system that automates email t
 - **Study Block Integration**: Fits study sessions into optimal time slots
 
 ### 📄 Smart Weekly PDF Report
-- **One-Click Export**: Generate professional PDF reports via print
-- **Comprehensive Sections**: Execution plan, email summary, calendar timeline, study plan, metrics
-- **Print-Optimized**: Clean typography for A4 printing
-- **Browser-Based**: Uses window.print() for instant PDF generation
+- **One-Click Export**: Generate professional PDF reports with "Export PDF" button in header
+- **Inline Export**: Export any past execution directly from history view
+- **Demo Mode Integration**: All PDFs include safety notices for judges
+- **Comprehensive Sections**: Execution plan, email summary, calendar timeline, study plan, audit log
+- **Screenshot Embedding**: Visual examples of interface (ready for Puppeteer integration)
+- **Multiple Methods**:
+  - jsPDF download (immediate, text-based)
+  - Browser Print-to-PDF (Ctrl+P, includes images)
+  - Puppeteer Edge Function (server-side, production-ready template available)
+- **Toast Notifications**: Real-time feedback on PDF generation status
 
 ### 🎤 Voice Mode (JARVIS)
 - **Speech Recognition**: Speak commands using Web Speech API (en-IN)

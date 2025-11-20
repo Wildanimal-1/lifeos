@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LifeOS Execution Report</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.6;
+      color: #1f2937;
+      background: white;
+      padding: 40px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    header {
+      border-bottom: 2px solid #e5e7eb;
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: bold;
+      color: #111827;
+      margin-bottom: 8px;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: bold;
+      color: #111827;
+      margin-bottom: 8px;
+      margin-top: 24px;
+    }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 8px;
+      margin-top: 12px;
+    }
+
+    .demo-badge {
+      display: inline-block;
+      background: #d1fae5;
+      color: #065f46;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .metadata {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+
+    section {
+      margin-bottom: 32px;
+      page-break-inside: avoid;
+    }
+
+    .audit-log-item {
+      border-left: 2px solid #d1d5db;
+      padding-left: 12px;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+
+    .audit-log-item p {
+      margin-bottom: 4px;
+    }
+
+    .audit-log-item .agent {
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .audit-log-item .output {
+      color: #6b7280;
+      font-size: 12px;
+    }
+
+    .audit-log-item .timestamp {
+      color: #9ca3af;
+      font-size: 11px;
+    }
+
+    .email-item {
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+
+    .email-item .subject {
+      font-weight: 500;
+      color: #111827;
+    }
+
+    .email-item .from {
+      color: #6b7280;
+      font-size: 13px;
+    }
+
+    .email-item .snippet {
+      color: #6b7280;
+      font-size: 13px;
+    }
+
+    #demo-screenshots {
+      page-break-before: always;
+      margin-top: 40px;
+    }
+
+    #demo-screenshots img {
+      max-width: 100%;
+      height: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .screenshot-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    .screenshot-row > div {
+      flex: 1;
+    }
+
+    .screenshot-caption {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 4px;
+      text-align: center;
+    }
+
+    footer {
+      margin-top: 40px;
+      padding-top: 16px;
+      border-top: 1px solid #e5e7eb;
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    @media print {
+      body {
+        padding: 20px;
+      }
+
+      section {
+        page-break-inside: avoid;
+      }
+
+      #demo-screenshots {
+        page-break-before: always;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>LifeOS Execution Report</h1>
+    <div class="demo-badge">DEMO MODE - Safe for Judges | Mock Data Only</div>
+    <div class="metadata">
+      <div>Generated: <span id="generated-date"></span></div>
+      <div>Execution Date: <span id="execution-date"></span></div>
+      <div>Timezone: Asia/Kolkata</div>
+    </div>
+  </header>
+
+  <section id="user-command">
+    <h2>User Command</h2>
+    <p id="command-text"></p>
+  </section>
+
+  <section id="execution-plan">
+    <h2>Execution Plan</h2>
+    <p id="plan-text"></p>
+  </section>
+
+  <section id="summary">
+    <h2>Summary</h2>
+    <p id="summary-text"></p>
+  </section>
+
+  <section id="email-summary">
+    <h2>Email Summary</h2>
+    <div id="email-stats"></div>
+    <div id="urgent-emails"></div>
+  </section>
+
+  <section id="calendar-summary">
+    <h2>Calendar Summary</h2>
+    <div id="calendar-stats"></div>
+  </section>
+
+  <section id="study-plan">
+    <h2>Study Plan</h2>
+    <div id="study-stats"></div>
+  </section>
+
+  <section id="audit-log">
+    <h2>Audit Log</h2>
+    <div id="audit-items"></div>
+  </section>
+
+  <section id="demo-screenshots">
+    <h2>Demo Screenshots</h2>
+    <p style="font-size: 14px; color: #6b7280; margin-bottom: 16px;">
+      Visual examples of the LifeOS interface:
+    </p>
+
+    <div>
+      <img src="/screenshots/dashboard-main.png" alt="Main Dashboard" />
+      <p class="screenshot-caption">Main Dashboard Interface</p>
+    </div>
+
+    <div class="screenshot-row">
+      <div>
+        <img src="/screenshots/command-interface.png" alt="Command Interface" />
+        <p class="screenshot-caption">Command Interface</p>
+      </div>
+      <div>
+        <img src="/screenshots/execution-results.png" alt="Execution Results" />
+        <p class="screenshot-caption">Execution Results</p>
+      </div>
+    </div>
+
+    <div>
+      <img src="/screenshots/calendar-management.png" alt="Calendar Management" />
+      <p class="screenshot-caption">Calendar Management & Optimization</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>LifeOS - Multi-Agent Personal Automation System</p>
+    <p>This PDF was generated in Demo Mode for evaluation purposes</p>
+  </footer>
+
+  <script>
+    // This script populates the template with data passed via query params or injected
+    // For Puppeteer: inject data via page.evaluate() before pdf generation
+
+    document.getElementById('generated-date').textContent = new Date().toLocaleString();
+
+    // Example of how data would be injected:
+    // window.executionData = { ... }
+    // populateTemplate(window.executionData)
+
+    function populateTemplate(data) {
+      if (!data) return;
+
+      document.getElementById('execution-date').textContent =
+        new Date(data.created_at).toLocaleString();
+
+      if (data.user_command) {
+        document.getElementById('command-text').textContent = data.user_command;
+      } else {
+        document.getElementById('user-command').style.display = 'none';
+      }
+
+      if (data.execution_plan) {
+        document.getElementById('plan-text').textContent = data.execution_plan;
+      } else {
+        document.getElementById('execution-plan').style.display = 'none';
+      }
+
+      if (data.final_summary) {
+        document.getElementById('summary-text').textContent = data.final_summary;
+      } else {
+        document.getElementById('summary').style.display = 'none';
+      }
+
+      const snapshot = data.dashboard_snapshot || {};
+
+      if (snapshot.email_summary) {
+        const stats = `
+          <p>Urgent emails: ${snapshot.email_summary.top_urgent?.length || 0}</p>
+          <p>Drafts created: ${snapshot.email_summary.drafts_count || 0}</p>
+          <p>Replies sent: ${snapshot.email_summary.replies_sent || 0}</p>
+        `;
+        document.getElementById('email-stats').innerHTML = stats;
+
+        if (snapshot.email_summary.top_urgent?.length > 0) {
+          const emails = snapshot.email_summary.top_urgent.map(email => `
+            <div class="email-item">
+              <p class="subject">Subject: ${email.subject}</p>
+              <p class="from">From: ${email.from}</p>
+              <p class="snippet">${email.snippet}</p>
+            </div>
+          `).join('');
+          document.getElementById('urgent-emails').innerHTML =
+            '<h3>Urgent Emails:</h3>' + emails;
+        }
+      } else {
+        document.getElementById('email-summary').style.display = 'none';
+      }
+
+      if (snapshot.calendar_summary) {
+        const stats = `
+          <p>Events today: ${snapshot.calendar_summary.events_today || 0}</p>
+          <p>Proposed changes: ${snapshot.calendar_summary.proposed_changes || 0}</p>
+        `;
+        document.getElementById('calendar-stats').innerHTML = stats;
+      } else {
+        document.getElementById('calendar-summary').style.display = 'none';
+      }
+
+      if (snapshot.study_summary) {
+        const stats = `
+          <p>Subject: ${snapshot.study_summary.subject}</p>
+          <p>Days planned: ${snapshot.study_summary.days_planned || 0}</p>
+          <p>Flashcards: ${snapshot.study_summary.flashcards_count || 0}</p>
+        `;
+        document.getElementById('study-stats').innerHTML = stats;
+      } else {
+        document.getElementById('study-plan').style.display = 'none';
+      }
+
+      if (data.audit_log && data.audit_log.length > 0) {
+        const logs = data.audit_log.map(log => `
+          <div class="audit-log-item">
+            <p class="agent">${log.agent} - ${log.action}</p>
+            ${log.output_summary ? `<p class="output">${log.output_summary}</p>` : ''}
+            <p class="timestamp">${new Date(log.timestamp).toLocaleString()}</p>
+          </div>
+        `).join('');
+        document.getElementById('audit-items').innerHTML = logs;
+      } else {
+        document.getElementById('audit-log').style.display = 'none';
+      }
+    }
+
+    // If data exists on window, populate immediately
+    if (window.executionData) {
+      populateTemplate(window.executionData);
+    }
+  </script>
+</body>
+</html>
