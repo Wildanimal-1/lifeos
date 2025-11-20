@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Mail, Calendar, BookOpen, FileText, Download, FileDown } from 'lucide-react';
 import { jsPDF } from 'jspdf';
+import { ComposeModal } from './ComposeModal';
 
 interface DashboardViewProps {
   executionPlan?: string;
@@ -9,6 +11,18 @@ interface DashboardViewProps {
 }
 
 export function DashboardView({ executionPlan, finalSummary, dashboardSnapshot, auditLog }: DashboardViewProps) {
+  const [selectedDraft, setSelectedDraft] = useState<any | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const openComposeModal = (draft: any) => {
+    setSelectedDraft(draft);
+    setIsModalOpen(true);
+  };
+
+  const closeComposeModal = () => {
+    setIsModalOpen(false);
+    setSelectedDraft(null);
+  };
   const downloadCSV = (csv: string, filename: string) => {
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -248,6 +262,8 @@ export function DashboardView({ executionPlan, finalSummary, dashboardSnapshot, 
                 onClick={() => {
                   if (action.type === 'download_csv' && action.data?.csv) {
                     downloadCSV(action.data.csv, 'flashcards.csv');
+                  } else if (action.type === 'email_draft' && action.data) {
+                    openComposeModal(action.data);
                   }
                 }}
                 className="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg text-sm text-left transition-colors"
@@ -282,6 +298,14 @@ export function DashboardView({ executionPlan, finalSummary, dashboardSnapshot, 
             ))}
           </div>
         </div>
+      )}
+
+      {selectedDraft && (
+        <ComposeModal
+          isOpen={isModalOpen}
+          onClose={closeComposeModal}
+          draft={selectedDraft}
+        />
       )}
     </div>
   );
