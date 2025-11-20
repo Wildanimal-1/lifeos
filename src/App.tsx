@@ -5,6 +5,7 @@ import { CommandInput } from './components/CommandInput';
 import { DashboardView } from './components/DashboardView';
 import { AuthForm } from './components/AuthForm';
 import { Settings } from './components/Settings';
+import { InstallPrompt } from './components/InstallPrompt';
 import { Brain, Settings as SettingsIcon, LogOut, History } from 'lucide-react';
 
 function App() {
@@ -270,6 +271,8 @@ function App() {
         <p>LifeOS - Multi-Agent Personal Automation System</p>
         <p className="mt-1">Timezone: {userContext?.timezone || 'Asia/Kolkata'} | Auto-send: {userContext?.auto_send ? 'Enabled' : 'Disabled'}</p>
       </footer>
+
+      <InstallPrompt />
     </div>
   );
 }
