@@ -8,6 +8,10 @@ import { DashboardAgent } from './dashboardAgent';
 export interface OrchestratorInput {
   user_command: string;
   user_context: UserContext;
+  options?: {
+    source?: 'text' | 'speech';
+    auto_execute?: boolean;
+  };
 }
 
 export interface OrchestratorOutput {
@@ -16,6 +20,7 @@ export interface OrchestratorOutput {
   audit_log: AuditLog[];
   final_summary: string;
   dashboard_snapshot: any;
+  voice_summary_text?: string;
 }
 
 export class Orchestrator {
@@ -51,6 +56,15 @@ export class Orchestrator {
   private buildExecutionPlan(intent: ParsedIntent): string {
     const steps: string[] = [];
     let stepNum = 1;
+
+    if (intent.intent === 'auto_plan_week' || intent.intent === 'auto_plan_day') {
+      steps.push(`${stepNum}) StudyAgent: Generate study blocks with time estimates and priorities.`);
+      stepNum++;
+      steps.push(`${stepNum}) CalendarAgent: Create ${intent.params.preview_only ? 'preview of' : ''} deep-work blocks and fit study sessions${intent.params.auto_execute ? ', applying changes to calendar' : ''}.`);
+      stepNum++;
+      steps.push(`${stepNum}) DashboardAgent: Compile weekly plan with proposed changes and timeline view.`);
+      return steps.join(' ');
+    }
 
     if (intent.required_agents.includes('EmailAgent')) {
       steps.push(`${stepNum}) EmailAgent: Triage inbox, draft replies for urgent emails${intent.params.auto_send ? ' and send' : ''}.`);
@@ -140,11 +154,43 @@ export class Orchestrator {
         }
       }
 
+      if (intent.required_agents.includes('StudyAgent')) {
+        studyOutput = await this.studyAgent.execute(
+          user_context.study_notes_link,
+          intent.params.subject || 'General Study',
+          user_context.work_hours
+        );
+
+        const log = await this.logAction(
+          user_context.user_id,
+          'StudyAgent',
+          'create_study_plan',
+          `Creating plan for ${intent.params.subject || 'General Study'}`,
+          `Generated ${studyOutput.study_schedule.length}-day schedule, ${studyOutput.flashcards.length} flashcards, ${studyOutput.practice_questions.length} practice questions, ${studyOutput.study_blocks?.length || 0} study blocks`
+        );
+        auditLogs.push(log);
+
+        await supabase.from('study_plans').insert({
+          execution_id: executionId,
+          subject: intent.params.subject || 'General Study',
+          schedule: studyOutput.study_schedule,
+          flashcards_csv: studyOutput.flashcards_csv,
+          practice_questions: studyOutput.practice_questions
+        });
+      }
+
       if (intent.required_agents.includes('CalendarAgent')) {
+        const autoPlanOptions = (intent.intent === 'auto_plan_week' || intent.intent === 'auto_plan_day') ? {
+          auto_execute: intent.params.auto_execute || false,
+          deep_work_hours: intent.params.deep_work_hours,
+          max_block_minutes: intent.params.max_block_minutes
+        } : undefined;
+
         calendarOutput = await this.calendarAgent.execute(
           user_context.calendar_id,
-          user_context.auto_send,
-          intent.params.timeframe || 'week'
+          intent.params.auto_execute || user_context.auto_send,
+          intent.params.timeframe || 'week',
+          autoPlanOptions
         );
 
         const log = await this.logAction(
@@ -168,31 +214,6 @@ export class Orchestrator {
         }
       }
 
-      if (intent.required_agents.includes('StudyAgent')) {
-        studyOutput = await this.studyAgent.execute(
-          user_context.study_notes_link,
-          intent.params.subject || 'General Study',
-          user_context.work_hours
-        );
-
-        const log = await this.logAction(
-          user_context.user_id,
-          'StudyAgent',
-          'create_study_plan',
-          `Creating plan for ${intent.params.subject || 'General Study'}`,
-          `Generated ${studyOutput.study_schedule.length}-day schedule, ${studyOutput.flashcards.length} flashcards, ${studyOutput.practice_questions.length} practice questions`
-        );
-        auditLogs.push(log);
-
-        await supabase.from('study_plans').insert({
-          execution_id: executionId,
-          subject: intent.params.subject || 'General Study',
-          schedule: studyOutput.study_schedule,
-          flashcards_csv: studyOutput.flashcards_csv,
-          practice_questions: studyOutput.practice_questions
-        });
-      }
-
       const dashboardSnapshot = await this.dashboardAgent.execute(
         emailOutput,
         calendarOutput,
@@ -213,8 +234,10 @@ export class Orchestrator {
         emailOutput,
         calendarOutput,
         studyOutput,
-        user_context.auto_send
+        intent.params.auto_execute || user_context.auto_send
       );
+
+      const voiceSummaryText = input.options?.source === 'speech' ? finalSummary : undefined;
 
       await supabase
         .from('executions')
@@ -231,7 +254,8 @@ export class Orchestrator {
         execution_plan: executionPlan,
         audit_log: auditLogs,
         final_summary: finalSummary,
-        dashboard_snapshot: dashboardSnapshot
+        dashboard_snapshot: dashboardSnapshot,
+        voice_summary_text: voiceSummaryText
       };
 
     } catch (error) {

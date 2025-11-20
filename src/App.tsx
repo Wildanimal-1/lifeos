@@ -79,7 +79,7 @@ function App() {
     }
   };
 
-  const handleCommand = async (command: string) => {
+  const handleCommand = async (command: string, source: 'text' | 'speech' = 'text') => {
     if (!user || !userContext) return;
 
     setLoading(true);
@@ -88,10 +88,20 @@ function App() {
       const orchestrator = new Orchestrator();
       const output = await orchestrator.execute({
         user_command: command,
-        user_context: userContext
+        user_context: userContext,
+        options: { source }
       });
 
       setResult(output);
+
+      if (output.voice_summary_text && source === 'speech') {
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance(output.voice_summary_text);
+          utterance.lang = 'en-IN';
+          window.speechSynthesis.speak(utterance);
+        }
+      }
+
       await loadExecutions(user.id);
     } catch (error) {
       console.error('Execution error:', error);

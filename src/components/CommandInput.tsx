@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { Send, Loader2 } from 'lucide-react';
+import { VoiceMode } from './VoiceMode';
 
 interface CommandInputProps {
-  onSubmit: (command: string) => void;
+  onSubmit: (command: string, source?: 'text' | 'speech') => void;
   loading: boolean;
 }
 
 export function CommandInput({ onSubmit, loading }: CommandInputProps) {
   const [command, setCommand] = useState('');
+  const [showVoiceMode, setShowVoiceMode] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,20 +18,27 @@ export function CommandInput({ onSubmit, loading }: CommandInputProps) {
     }
   };
 
+  const handleVoiceTranscript = (transcript: string) => {
+    setCommand(transcript);
+    setShowVoiceMode(false);
+    onSubmit(transcript, 'speech');
+  };
+
   const exampleCommands = [
     'Plan my week: reply to urgent emails, reschedule low-priority meetings, and create a study plan for my ML midterm',
+    'Auto-plan my week (preview only)',
+    'Auto-plan my week with deep work blocks',
     'Triage my inbox and draft replies for urgent emails',
-    'Reschedule low-priority calendar events to create focused work blocks',
     'Create a study plan for my ML midterm exam'
   ];
 
   return (
     <div className="w-full max-w-4xl mx-auto">
-      <form onSubmit={handleSubmit} className="relative">
+      <form onSubmit={handleSubmit} className="relative mb-4">
         <textarea
           value={command}
           onChange={(e) => setCommand(e.target.value)}
-          placeholder="Enter your command (e.g., 'Plan my week...')"
+          placeholder="Enter your command (e.g., 'Plan my week...') or use voice input"
           className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
           rows={3}
           disabled={loading}
@@ -47,14 +56,30 @@ export function CommandInput({ onSubmit, loading }: CommandInputProps) {
         </button>
       </form>
 
+      {showVoiceMode && (
+        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <VoiceMode onTranscript={handleVoiceTranscript} loading={loading} />
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+        <button
+          onClick={() => setShowVoiceMode(!showVoiceMode)}
+          disabled={loading}
+          className="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+        >
+          {showVoiceMode ? 'Hide Voice Mode' : 'Enable Voice Mode'}
+        </button>
+      </div>
+
       <div className="mt-4">
-        <p className="text-sm text-gray-600 mb-2">Example commands:</p>
-        <div className="space-y-2">
+        <p className="text-sm font-medium text-gray-700 mb-2">Example commands:</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {exampleCommands.map((example, idx) => (
             <button
               key={idx}
               onClick={() => setCommand(example)}
-              className="block w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+              className="text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
               disabled={loading}
             >
               {example}
