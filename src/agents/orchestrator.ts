@@ -91,6 +91,19 @@ export class Orchestrator {
     const { user_command, user_context } = input;
     const auditLogs: AuditLog[] = [];
 
+    const effectiveAutoSend = user_context.demo_mode ? false : user_context.auto_send;
+
+    if (user_context.demo_mode) {
+      const demoLog = await this.logAction(
+        user_context.user_id,
+        'Orchestrator',
+        'demo_mode_check',
+        'Demo Mode: ENABLED',
+        'Using mock data, auto_send forced to false, preventing outgoing messages to non-demo accounts'
+      );
+      auditLogs.push(demoLog);
+    }
+
     const { data: execution, error: execError } = await supabase
       .from('executions')
       .insert({
@@ -105,7 +118,7 @@ export class Orchestrator {
     const executionId = execution.id;
 
     try {
-      const intent = this.intentParser.parse(user_command, user_context.auto_send);
+      const intent = this.intentParser.parse(user_command, effectiveAutoSend);
 
       const log1 = await this.logAction(
         user_context.user_id,

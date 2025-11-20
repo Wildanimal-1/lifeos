@@ -53,6 +53,7 @@ function App() {
         user_id: userId,
         calendar_id: 'primary',
         auto_send: false,
+        demo_mode: true,
         work_hours: '09:00-18:00',
         timezone: 'Asia/Kolkata'
       };
@@ -165,9 +166,14 @@ function App() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100">
       <header className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Brain className="w-8 h-8 text-blue-600" />
             <h1 className="text-2xl font-bold text-gray-900">LifeOS</h1>
+            {userContext?.demo_mode && (
+              <span className="px-2 py-1 bg-green-100 border border-green-300 text-green-800 text-xs font-semibold rounded-full">
+                DEMO MODE
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -269,7 +275,11 @@ function App() {
 
       <footer className="mt-12 py-6 text-center text-sm text-gray-500">
         <p>LifeOS - Multi-Agent Personal Automation System</p>
-        <p className="mt-1">Timezone: {userContext?.timezone || 'Asia/Kolkata'} | Auto-send: {userContext?.auto_send ? 'Enabled' : 'Disabled'}</p>
+        <p className="mt-1">
+          Timezone: {userContext?.timezone || 'Asia/Kolkata'} |
+          Demo Mode: {userContext?.demo_mode ? 'ON' : 'OFF'} |
+          Auto-send: {userContext?.demo_mode ? 'Disabled (Demo)' : (userContext?.auto_send ? 'Enabled' : 'Disabled')}
+        </p>
       </footer>
 
       <InstallPrompt />

@@ -16,6 +16,7 @@ export interface UserContext {
   calendar_id: string;
   study_notes_link?: string;
   auto_send: boolean;
+  demo_mode: boolean;
   work_hours: string;
   timezone: string;
   created_at: string;

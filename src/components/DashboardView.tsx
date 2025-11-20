@@ -63,11 +63,20 @@ export function DashboardView({ executionPlan, finalSummary, dashboardSnapshot, 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(18);
     doc.text('LifeOS Execution Report', 20, yPosition);
-    yPosition += 15;
+    yPosition += 10;
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(0, 128, 0);
+    doc.text('DEMO MODE - Safe for Judges | Mock Data Only', 20, yPosition);
+    yPosition += 5;
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
     doc.text(`Generated: ${new Date().toLocaleString()}`, 20, yPosition);
+    yPosition += 5;
+    doc.text('Timezone: Asia/Kolkata', 20, yPosition);
     yPosition += 15;
 
     if (executionPlan) {
@@ -126,6 +135,20 @@ export function DashboardView({ executionPlan, finalSummary, dashboardSnapshot, 
         yPosition += 3;
       });
     }
+
+    doc.addPage();
+    yPosition = 20;
+    addText('Demo Screenshots', 14, true);
+    addText('See included screenshots for UI examples:', 10);
+    addText('- Screenshot 2025-11-19 000434.png: Main dashboard', 9);
+    addText('- Screenshot 2025-11-19 000416.png: Command interface', 9);
+    addText('- Screenshot 2025-11-19 000426.png: Calendar management', 9);
+    yPosition += 10;
+
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Note: Screenshots are available in the public/ folder of the project', 20, yPosition);
+    doc.text('Reference: /mnt/data/fbbd3259-3036-4f9f-96c3-5158fc444afa.png', 20, yPosition + 5);
 
     doc.save('lifeos-report.pdf');
   };
