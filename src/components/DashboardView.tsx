@@ -338,51 +338,75 @@ export function DashboardView({ executionPlan, finalSummary, dashboardSnapshot, 
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <img
-              src="/screenshots/dashboard-main.png"
-              alt="Main Dashboard"
-              className="w-full border border-gray-300 rounded-lg shadow-sm"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-              }}
-            />
+            <div className="relative bg-gray-100 border border-gray-300 rounded-lg overflow-hidden" style={{ aspectRatio: '16/9' }}>
+              <img
+                src="/screenshots/dashboard-main.png"
+                alt="Main Dashboard"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const parent = target.parentElement;
+                  if (parent) {
+                    parent.innerHTML = '<div class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm p-4 text-center">Screenshot: dashboard-main.png<br/><span class="text-xs">(Placeholder - add real screenshot)</span></div>';
+                  }
+                }}
+              />
+            </div>
             <p className="text-xs text-gray-500 mt-2 text-center">Main Dashboard</p>
           </div>
           <div>
-            <img
-              src="/screenshots/command-interface.png"
-              alt="Command Interface"
-              className="w-full border border-gray-300 rounded-lg shadow-sm"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-              }}
-            />
+            <div className="relative bg-gray-100 border border-gray-300 rounded-lg overflow-hidden" style={{ aspectRatio: '16/9' }}>
+              <img
+                src="/screenshots/command-interface.png"
+                alt="Command Interface"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const parent = target.parentElement;
+                  if (parent) {
+                    parent.innerHTML = '<div class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm p-4 text-center">Screenshot: command-interface.png<br/><span class="text-xs">(Placeholder - add real screenshot)</span></div>';
+                  }
+                }}
+              />
+            </div>
             <p className="text-xs text-gray-500 mt-2 text-center">Command Interface</p>
           </div>
           <div>
-            <img
-              src="/screenshots/calendar-management.png"
-              alt="Calendar Management"
-              className="w-full border border-gray-300 rounded-lg shadow-sm"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-              }}
-            />
+            <div className="relative bg-gray-100 border border-gray-300 rounded-lg overflow-hidden" style={{ aspectRatio: '16/9' }}>
+              <img
+                src="/screenshots/calendar-management.png"
+                alt="Calendar Management"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const parent = target.parentElement;
+                  if (parent) {
+                    parent.innerHTML = '<div class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm p-4 text-center">Screenshot: calendar-management.png<br/><span class="text-xs">(Placeholder - add real screenshot)</span></div>';
+                  }
+                }}
+              />
+            </div>
             <p className="text-xs text-gray-500 mt-2 text-center">Calendar Management</p>
           </div>
           <div>
-            <img
-              src="/screenshots/execution-results.png"
-              alt="Execution Results"
-              className="w-full border border-gray-300 rounded-lg shadow-sm"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-              }}
-            />
+            <div className="relative bg-gray-100 border border-gray-300 rounded-lg overflow-hidden" style={{ aspectRatio: '16/9' }}>
+              <img
+                src="/screenshots/execution-results.png"
+                alt="Execution Results"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const parent = target.parentElement;
+                  if (parent) {
+                    parent.innerHTML = '<div class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm p-4 text-center">Screenshot: execution-results.png<br/><span class="text-xs">(Placeholder - add real screenshot)</span></div>';
+                  }
+                }}
+              />
+            </div>
             <p className="text-xs text-gray-500 mt-2 text-center">Execution Results</p>
           </div>
         </div>
