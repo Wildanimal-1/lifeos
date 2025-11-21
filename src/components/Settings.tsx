@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Save, Mail, CheckCircle, AlertCircle, Trash2, Shield } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Mail, CheckCircle, AlertCircle, Trash2, Shield, Loader } from 'lucide-react';
 import { supabase, UserContext, OAuthAccount } from '../lib/supabase';
 import { oauthManager } from '../lib/oauthManager';
+import { oauthService } from '../lib/oauth';
 
 interface SettingsProps {
   userId: string;
@@ -20,11 +21,23 @@ export function Settings({ userId, onUpdate }: SettingsProps) {
   const [message, setMessage] = useState('');
   const [accounts, setAccounts] = useState<OAuthAccount[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
+  const [oauthConfigured, setOauthConfigured] = useState(true);
+  const [oauthConfigErrors, setOauthConfigErrors] = useState<string[]>([]);
+  const [connectingOAuth, setConnectingOAuth] = useState(false);
 
   useEffect(() => {
     loadContext();
     loadAccounts();
+    checkOAuthConfig();
   }, [userId]);
+
+  const checkOAuthConfig = () => {
+    const configured = oauthService.isConfigured();
+    setOauthConfigured(configured);
+    if (!configured) {
+      setOauthConfigErrors(oauthService.getConfigErrors());
+    }
+  };
 
   const loadContext = async () => {
     const { data } = await supabase
@@ -68,6 +81,21 @@ export function Settings({ userId, onUpdate }: SettingsProps) {
       setTimeout(() => setMessage(''), 3000);
     } else {
       setMessage('Error: Failed to disconnect account');
+    }
+  };
+
+  const handleConnectGoogle = async () => {
+    if (!oauthConfigured) {
+      setMessage('Error: OAuth not configured. Please check your .env file.');
+      return;
+    }
+
+    try {
+      setConnectingOAuth(true);
+      oauthService.initiateGoogleOAuth();
+    } catch (error: any) {
+      setConnectingOAuth(false);
+      setMessage(`Error: ${error.message}`);
     }
   };
 
@@ -141,8 +169,29 @@ export function Settings({ userId, onUpdate }: SettingsProps) {
                   <p className="text-xs text-yellow-700 mt-1">
                     Connect a Google account to use email and calendar features.
                   </p>
-                  <button className="mt-3 px-3 py-1.5 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700 transition-colors">
-                    Connect Google Account
+                  {!oauthConfigured && (
+                    <div className="mt-2 text-xs text-red-700">
+                      <p className="font-medium">OAuth not configured:</p>
+                      <ul className="list-disc list-inside mt-1">
+                        {oauthConfigErrors.map((error, idx) => (
+                          <li key={idx}>{error}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <button
+                    onClick={handleConnectGoogle}
+                    disabled={!oauthConfigured || connectingOAuth}
+                    className="mt-3 px-3 py-1.5 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  >
+                    {connectingOAuth ? (
+                      <>
+                        <Loader className="w-4 h-4 animate-spin" />
+                        Connecting...
+                      </>
+                    ) : (
+                      'Connect Google Account'
+                    )}
                   </button>
                 </div>
               </div>
@@ -202,8 +251,19 @@ export function Settings({ userId, onUpdate }: SettingsProps) {
                   </div>
                 );
               })}
-              <button className="w-full px-4 py-2 border-2 border-dashed border-gray-300 text-gray-600 rounded-lg hover:border-blue-500 hover:text-blue-600 transition-colors text-sm font-medium">
-                + Connect Another Account
+              <button
+                onClick={handleConnectGoogle}
+                disabled={!oauthConfigured || connectingOAuth}
+                className="w-full px-4 py-2 border-2 border-dashed border-gray-300 text-gray-600 rounded-lg hover:border-blue-500 hover:text-blue-600 disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors text-sm font-medium flex items-center justify-center gap-2"
+              >
+                {connectingOAuth ? (
+                  <>
+                    <Loader className="w-4 h-4 animate-spin" />
+                    Connecting...
+                  </>
+                ) : (
+                  '+ Connect Another Account'
+                )}
               </button>
             </div>
           )}

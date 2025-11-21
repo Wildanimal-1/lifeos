@@ -11,6 +11,7 @@ import { Toast } from './components/Toast';
 import { ProgressModal } from './components/ProgressModal';
 import { AccountSelector } from './components/AccountSelector';
 import { AccountDetailsModal } from './components/AccountDetailsModal';
+import { AuthCallback } from './components/AuthCallback';
 import { generatePDF } from './lib/pdfExport';
 import { oauthManager } from './lib/oauthManager';
 import { Brain, Settings as SettingsIcon, LogOut, History, FileText, User } from 'lucide-react';
@@ -30,8 +31,15 @@ function App() {
   const [runningAccountEmail, setRunningAccountEmail] = useState<string | null>(null);
   const [showAccountDetails, setShowAccountDetails] = useState(false);
   const [currentAccount, setCurrentAccount] = useState<any>(null);
+  const [isAuthCallback, setIsAuthCallback] = useState(false);
 
   useEffect(() => {
+    const path = window.location.pathname;
+    if (path === '/auth/callback') {
+      setIsAuthCallback(true);
+      return;
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -367,6 +375,10 @@ function App() {
       });
     }
   };
+
+  if (isAuthCallback) {
+    return <AuthCallback />;
+  }
 
   if (!user) {
     return (
