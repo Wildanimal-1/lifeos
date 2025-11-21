@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { supabase, UserContext } from './lib/supabase';
 import { Orchestrator, OrchestratorOutput } from './agents/orchestrator';
+import { compileWeeklySnapshot } from './agents/weeklyCompiler';
 import { CommandInput } from './components/CommandInput';
 import { DashboardView } from './components/DashboardView';
 import { AuthForm } from './components/AuthForm';
 import { Settings } from './components/Settings';
 import { InstallPrompt } from './components/InstallPrompt';
 import { Toast } from './components/Toast';
+import { ProgressModal } from './components/ProgressModal';
 import { generatePDF } from './lib/pdfExport';
 import { Brain, Settings as SettingsIcon, LogOut, History, FileText } from 'lucide-react';
 
@@ -19,6 +21,8 @@ function App() {
   const [executions, setExecutions] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info'; link?: string } | null>(null);
+  const [showProgress, setShowProgress] = useState(false);
+  const [progressMessage, setProgressMessage] = useState('');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -148,7 +152,76 @@ function App() {
     }
   };
 
-  const handleExportPDF = async (executionId?: string) => {
+  const handleExportWeeklyPDF = async () => {
+    try {
+      if (!userContext) {
+        setToast({
+          message: 'User context not loaded',
+          type: 'error'
+        });
+        return;
+      }
+
+      setShowProgress(true);
+      setProgressMessage('Compiling weekly report...');
+
+      const startTime = Date.now();
+
+      const snapshot = await compileWeeklySnapshot({
+        userId: user.id,
+        userContext: userContext
+      });
+
+      const compileTime = Date.now() - startTime;
+
+      if (compileTime < 8000) {
+        setProgressMessage('Generating PDF...');
+      }
+
+      const { data: auditLogs } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('timestamp', snapshot.week_start)
+        .lte('timestamp', snapshot.week_end)
+        .order('timestamp', { ascending: true });
+
+      const filename = generatePDF({
+        executionPlan: snapshot.execution_plan,
+        finalSummary: `Weekly report for ${snapshot.week_start} to ${snapshot.week_end}`,
+        dashboardSnapshot: snapshot.dashboard_snapshot,
+        auditLog: auditLogs || [],
+        userCommand: `Weekly Report: ${snapshot.week_start} - ${snapshot.week_end}`,
+        createdAt: snapshot.created_at,
+        demoMode: userContext?.demo_mode
+      });
+
+      await supabase
+        .from('weekly_snapshots')
+        .update({
+          pdf_path: `exports/${filename}`,
+          public_url: `${window.location.origin}/exports/${filename}`,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', snapshot.id);
+
+      setShowProgress(false);
+
+      setToast({
+        message: `Weekly PDF generated: ${filename}`,
+        type: 'success',
+        link: `${window.location.origin}/exports/${filename}`
+      });
+    } catch (error: any) {
+      setShowProgress(false);
+      setToast({
+        message: `Failed to generate weekly PDF: ${error.message}`,
+        type: 'error'
+      });
+    }
+  };
+
+  const handleExportCommandPDF = async (executionId?: string) => {
     try {
       let executionData;
       let auditLogs;
@@ -247,14 +320,13 @@ function App() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => handleExportPDF()}
-              disabled={!result}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
-              aria-label={!result ? "No snapshot available — run a command first" : "Export Weekly PDF"}
-              title={!result ? "No snapshot available — run a command first" : "Export Weekly PDF"}
+              onClick={handleExportWeeklyPDF}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors"
+              aria-label="Export Weekly PDF Report"
+              title="Export Weekly PDF Report"
             >
               <FileText className="w-5 h-5" />
-              <span className="hidden sm:inline">Export PDF</span>
+              <span className="hidden sm:inline">Weekly Report</span>
             </button>
             <button
               onClick={() => {
@@ -321,11 +393,11 @@ function App() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleExportPDF(exec.id);
+                        handleExportCommandPDF(exec.id);
                       }}
                       className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors"
-                      aria-label="Export PDF for this execution"
-                      title="Export PDF for this execution"
+                      aria-label="Export Command PDF"
+                      title="Export Command PDF"
                     >
                       <FileText className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">PDF</span>
@@ -388,6 +460,12 @@ function App() {
           onClose={() => setToast(null)}
         />
       )}
+
+      <ProgressModal
+        isOpen={showProgress}
+        title="Generating Weekly Report"
+        message={progressMessage}
+      />
     </div>
   );
 }

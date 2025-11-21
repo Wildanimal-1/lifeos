@@ -171,9 +171,10 @@ export function DashboardView({ executionPlan, finalSummary, dashboardSnapshot, 
         <button
           onClick={downloadPDFReport}
           className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          title="Download PDF for this command execution"
         >
           <FileDown className="w-4 h-4" />
-          Download PDF Report
+          Download Command PDF
         </button>
       </div>
 
