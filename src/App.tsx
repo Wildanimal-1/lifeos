@@ -10,9 +10,10 @@ import { InstallPrompt } from './components/InstallPrompt';
 import { Toast } from './components/Toast';
 import { ProgressModal } from './components/ProgressModal';
 import { AccountSelector } from './components/AccountSelector';
+import { AccountDetailsModal } from './components/AccountDetailsModal';
 import { generatePDF } from './lib/pdfExport';
 import { oauthManager } from './lib/oauthManager';
-import { Brain, Settings as SettingsIcon, LogOut, History, FileText } from 'lucide-react';
+import { Brain, Settings as SettingsIcon, LogOut, History, FileText, User } from 'lucide-react';
 
 function App() {
   const [user, setUser] = useState<any>(null);
@@ -27,6 +28,8 @@ function App() {
   const [progressMessage, setProgressMessage] = useState('');
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [runningAccountEmail, setRunningAccountEmail] = useState<string | null>(null);
+  const [showAccountDetails, setShowAccountDetails] = useState(false);
+  const [currentAccount, setCurrentAccount] = useState<any>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -34,15 +37,33 @@ function App() {
       if (session?.user) {
         loadUserContext(session.user.id);
         loadExecutions(session.user.id);
+        loadCurrentAccount(session.user.id);
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       (async () => {
         setUser(session?.user ?? null);
         if (session?.user) {
           await loadUserContext(session.user.id);
           await loadExecutions(session.user.id);
+          await loadCurrentAccount(session.user.id);
+
+          if (event === 'SIGNED_IN') {
+            setToast({
+              message: `Signed in as ${session.user.email} — connected successfully`,
+              type: 'success'
+            });
+
+            await supabase.from('audit_logs').insert({
+              user_id: session.user.id,
+              agent: 'AuthSystem',
+              action: 'oauth_connected',
+              input_summary: `User signed in: ${session.user.email}`,
+              output_summary: 'OAuth connection established',
+              user_email: session.user.email
+            });
+          }
         }
       })();
     });
@@ -89,6 +110,38 @@ function App() {
 
     if (data) {
       setExecutions(data);
+    }
+  };
+
+  const loadCurrentAccount = async (userId: string) => {
+    const defaultAccount = await oauthManager.getDefaultAccount(userId);
+    if (defaultAccount) {
+      setCurrentAccount(defaultAccount);
+    } else {
+      const accounts = await oauthManager.getUserAccounts(userId);
+      if (accounts.length > 0) {
+        setCurrentAccount(accounts[0]);
+      }
+    }
+  };
+
+  const handleDisconnectAccount = async (accountId: string) => {
+    if (!user) return;
+
+    const success = await oauthManager.removeAccount(accountId, user.id);
+    if (success) {
+      setToast({
+        message: 'Account disconnected successfully',
+        type: 'success'
+      });
+      await loadCurrentAccount(user.id);
+      setShowAccountDetails(false);
+      setCurrentAccount(null);
+    } else {
+      setToast({
+        message: 'Failed to disconnect account',
+        type: 'error'
+      });
     }
   };
 
@@ -346,6 +399,22 @@ function App() {
             )}
           </div>
           <div className="flex items-center gap-2">
+            {currentAccount && (
+              <button
+                onClick={() => setShowAccountDetails(true)}
+                className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-lg transition-colors"
+                title="View account details"
+              >
+                <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold">
+                  {currentAccount.email.charAt(0).toUpperCase()}
+                </div>
+                <div className="hidden md:flex flex-col items-start">
+                  <span className="text-xs text-gray-600 font-medium">Connected as:</span>
+                  <span className="text-sm text-gray-900 font-semibold">{currentAccount.email}</span>
+                </div>
+                <User className="w-4 h-4 text-blue-600 md:hidden" />
+              </button>
+            )}
             <button
               onClick={handleExportWeeklyPDF}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors"
@@ -520,6 +589,14 @@ function App() {
         title="Generating Weekly Report"
         message={progressMessage}
       />
+
+      {showAccountDetails && currentAccount && (
+        <AccountDetailsModal
+          account={currentAccount}
+          onClose={() => setShowAccountDetails(false)}
+          onDisconnect={handleDisconnectAccount}
+        />
+      )}
     </div>
   );
 }
