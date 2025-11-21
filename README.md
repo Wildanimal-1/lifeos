@@ -83,6 +83,7 @@ LifeOS is an intelligent multi-agent orchestration system that automates email t
 ### Prerequisites
 - Node.js 18+ and npm
 - Supabase account
+- Google account (for Gmail & Calendar integration)
 
 ### Quick Setup
 
@@ -103,10 +104,29 @@ npm run dev
 npm run build
 ```
 
+### Connect Gmail & Calendar (Required)
+
+LifeOS needs access to your Gmail and Google Calendar to function. Follow these guides:
+
+- **Quick Start (5 min):** See [QUICK_START.md](./QUICK_START.md)
+- **Detailed Guide:** See [GOOGLE_OAUTH_SETUP.md](./GOOGLE_OAUTH_SETUP.md)
+
+**TL;DR:**
+1. Create OAuth credentials at console.cloud.google.com
+2. Add credentials to your `.env` file
+3. Restart the dev server
+4. Connect your account in Settings
+
 ### Environment Variables
 ```env
+# Required
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# Required for Gmail & Calendar
+VITE_GOOGLE_CLIENT_ID=your_client_id.apps.googleusercontent.com
+VITE_GOOGLE_CLIENT_SECRET=GOCSPX-your_secret
+VITE_GOOGLE_REDIRECT_URI=http://localhost:5173/auth/callback
 ```
 
 ## Usage
