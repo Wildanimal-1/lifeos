@@ -6,10 +6,11 @@ import { oauthService } from '../lib/oauth';
 
 interface SettingsProps {
   userId: string;
+  userEmail?: string;
   onUpdate: (context: UserContext) => void;
 }
 
-export function Settings({ userId, onUpdate }: SettingsProps) {
+export function Settings({ userId, userEmail, onUpdate }: SettingsProps) {
   const [context, setContext] = useState<Partial<UserContext>>({
     calendar_id: 'primary',
     auto_send: false,
@@ -328,43 +329,39 @@ export function Settings({ userId, onUpdate }: SettingsProps) {
           </select>
         </div>
 
-        <div className="border-t pt-4">
-          <div className="flex items-center gap-2 mb-3">
-            <input
-              type="checkbox"
-              id="demo_mode"
-              checked={context.demo_mode ?? true}
-              onChange={(e) => setContext({ ...context, demo_mode: e.target.checked })}
-              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <label htmlFor="demo_mode" className="text-sm font-medium text-gray-700">
-              Demo Mode (Recommended for Judges)
-            </label>
+        {userEmail === 'lifeos.demo@gmail.com' && (
+          <div className="border-t pt-4">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-start gap-2">
+                <Shield className="w-5 h-5 text-green-600 mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-semibold text-green-800 mb-1">Demo Account</h3>
+                  <p className="text-xs text-green-700 mb-2">
+                    You are using the demo account. Demo mode is always enabled for safety.
+                  </p>
+                  <ul className="text-xs text-green-600 list-disc list-inside space-y-0.5">
+                    <li>Uses mock data only</li>
+                    <li>Prevents outgoing messages to real accounts</li>
+                    <li>Auto-send is disabled for safety</li>
+                    <li>Shows visible audit log for transparency</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="ml-6 space-y-1">
-            <p className="text-xs text-gray-600">
-              When enabled:
-            </p>
-            <ul className="text-xs text-gray-500 list-disc list-inside space-y-0.5">
-              <li>Uses mock data or lifeos.demo@gmail.com only</li>
-              <li>Prevents outgoing messages to other accounts</li>
-              <li>Forces auto_send to false for safety</li>
-              <li>Shows visible audit log for transparency</li>
-            </ul>
-          </div>
-        </div>
+        )}
 
         <div className="flex items-center gap-2">
           <input
             type="checkbox"
             id="auto_send"
-            checked={context.demo_mode ? false : (context.auto_send || false)}
+            checked={userEmail === 'lifeos.demo@gmail.com' ? false : (context.auto_send || false)}
             onChange={(e) => setContext({ ...context, auto_send: e.target.checked })}
-            disabled={context.demo_mode ?? true}
+            disabled={userEmail === 'lifeos.demo@gmail.com'}
             className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <label htmlFor="auto_send" className="text-sm font-medium text-gray-700">
-            Auto-send email replies {context.demo_mode && '(Disabled in Demo Mode)'}
+            Auto-send email replies {userEmail === 'lifeos.demo@gmail.com' && '(Disabled in Demo Mode)'}
           </label>
         </div>
         <p className="text-xs text-gray-500 ml-6">
