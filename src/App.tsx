@@ -9,7 +9,9 @@ import { Settings } from './components/Settings';
 import { InstallPrompt } from './components/InstallPrompt';
 import { Toast } from './components/Toast';
 import { ProgressModal } from './components/ProgressModal';
+import { AccountSelector } from './components/AccountSelector';
 import { generatePDF } from './lib/pdfExport';
+import { oauthManager } from './lib/oauthManager';
 import { Brain, Settings as SettingsIcon, LogOut, History, FileText } from 'lucide-react';
 
 function App() {
@@ -23,6 +25,8 @@ function App() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info'; link?: string } | null>(null);
   const [showProgress, setShowProgress] = useState(false);
   const [progressMessage, setProgressMessage] = useState('');
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [runningAccountEmail, setRunningAccountEmail] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -91,13 +95,32 @@ function App() {
   const handleCommand = async (command: string, source: 'text' | 'speech' = 'text') => {
     if (!user || !userContext) return;
 
+    if (!selectedAccountId) {
+      setToast({
+        message: 'Please select an OAuth account before running commands',
+        type: 'error'
+      });
+      return;
+    }
+
+    const validation = await oauthManager.validateAccountContext(user.id, selectedAccountId);
+    if (!validation.valid) {
+      setToast({
+        message: validation.message || 'Invalid account selection',
+        type: 'error'
+      });
+      return;
+    }
+
     setLoading(true);
     setShowHistory(false);
+    setRunningAccountEmail(validation.account?.email || null);
     try {
       const orchestrator = new Orchestrator();
       const output = await orchestrator.execute({
         user_command: command,
         user_context: userContext,
+        oauth_account_id: selectedAccountId,
         options: { source }
       });
 
@@ -112,11 +135,15 @@ function App() {
       }
 
       await loadExecutions(user.id);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Execution error:', error);
-      alert('An error occurred. Please try again.');
+      setToast({
+        message: error.message || 'An error occurred. Please try again.',
+        type: 'error'
+      });
     } finally {
       setLoading(false);
+      setRunningAccountEmail(null);
     }
   };
 
@@ -418,13 +445,40 @@ function App() {
               </p>
             </div>
 
+            <div className="w-full max-w-4xl mx-auto mb-4">
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Running as:
+                </label>
+                <AccountSelector
+                  userId={user.id}
+                  selectedAccountId={selectedAccountId}
+                  onAccountSelect={setSelectedAccountId}
+                  disabled={loading}
+                />
+                {selectedAccountId && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    All operations will use this account. Account must be valid and have appropriate OAuth scopes.
+                  </p>
+                )}
+              </div>
+            </div>
+
             <CommandInput onSubmit={handleCommand} loading={loading} />
 
             {loading && (
               <div className="text-center py-12">
-                <div className="inline-flex items-center gap-3 px-6 py-3 bg-white border border-gray-200 rounded-lg shadow-sm">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                  <span className="text-gray-700 font-medium">Processing your request...</span>
+                <div className="inline-flex flex-col items-center gap-3 px-6 py-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                    <span className="text-gray-700 font-medium">Processing your request...</span>
+                  </div>
+                  {runningAccountEmail && (
+                    <div className="text-xs text-gray-600 flex items-center gap-2">
+                      <span className="font-medium">Running as:</span>
+                      <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded font-mono">{runningAccountEmail}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

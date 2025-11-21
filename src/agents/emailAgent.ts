@@ -82,7 +82,7 @@ export class EmailAgent {
       .slice(0, 5);
 
     return {
-      replies_sent_count: autoSend ? drafts.length : 0,
+      replies_sent_count: 0,
       drafts,
       summaries,
       top_urgent: topUrgent

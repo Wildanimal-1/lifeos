@@ -1,4 +1,5 @@
 import { supabase, UserContext, AuditLog } from '../lib/supabase';
+import { oauthManager } from '../lib/oauthManager';
 import { IntentParser, ParsedIntent } from './intentParser';
 import { EmailAgent } from './emailAgent';
 import { CalendarAgent } from './calendarAgent';
@@ -8,6 +9,7 @@ import { DashboardAgent } from './dashboardAgent';
 export interface OrchestratorInput {
   user_command: string;
   user_context: UserContext;
+  oauth_account_id: string;
   options?: {
     source?: 'text' | 'speech';
     auto_execute?: boolean;
@@ -35,7 +37,12 @@ export class Orchestrator {
     agent: string,
     action: string,
     inputSummary: string,
-    outputSummary: string
+    outputSummary: string,
+    oauthAccountId?: string,
+    userEmail?: string,
+    draftsCreated?: number,
+    eventsChanged?: number,
+    runId?: string
   ): Promise<AuditLog> {
     const { data, error } = await supabase
       .from('audit_logs')
@@ -44,7 +51,12 @@ export class Orchestrator {
         agent,
         action,
         input_summary: inputSummary,
-        output_summary: outputSummary
+        output_summary: outputSummary,
+        oauth_account_id: oauthAccountId,
+        user_email: userEmail,
+        drafts_created: draftsCreated,
+        events_changed: eventsChanged,
+        run_id: runId
       })
       .select()
       .single();
@@ -88,9 +100,21 @@ export class Orchestrator {
   }
 
   async execute(input: OrchestratorInput): Promise<OrchestratorOutput> {
-    const { user_command, user_context } = input;
+    const { user_command, user_context, oauth_account_id } = input;
     const auditLogs: AuditLog[] = [];
 
+    const validation = await oauthManager.validateAccountContext(
+      user_context.user_id,
+      oauth_account_id
+    );
+
+    if (!validation.valid) {
+      throw new Error(
+        `Account context validation failed: ${validation.message}. Cannot execute without valid OAuth account.`
+      );
+    }
+
+    const account = validation.account!;
     const effectiveAutoSend = user_context.demo_mode ? false : user_context.auto_send;
 
     if (user_context.demo_mode) {
@@ -109,6 +133,8 @@ export class Orchestrator {
       .insert({
         user_id: user_context.user_id,
         user_command,
+        oauth_account_id,
+        account_email: account.email,
         status: 'running'
       })
       .select()
@@ -125,7 +151,12 @@ export class Orchestrator {
         'IntentParser',
         'parse_command',
         `Command: "${user_command}"`,
-        `Intent: ${intent.intent}, Agents: ${intent.required_agents.join(', ')}`
+        `Intent: ${intent.intent}, Agents: ${intent.required_agents.join(', ')}`,
+        oauth_account_id,
+        account.email,
+        undefined,
+        undefined,
+        executionId
       );
       auditLogs.push(log1);
 
@@ -151,7 +182,12 @@ export class Orchestrator {
           'EmailAgent',
           'triage_and_draft',
           `Processing inbox with auto_send=false (enforced), run_id=${executionId}`,
-          `Drafted ${emailOutput.drafts.length} replies (all set to auto_send=false), found ${emailOutput.top_urgent.length} urgent emails`
+          `Drafted ${emailOutput.drafts.length} replies (all set to auto_send=false), found ${emailOutput.top_urgent.length} urgent emails`,
+          oauth_account_id,
+          account.email,
+          emailOutput.drafts.length,
+          undefined,
+          executionId
         );
         auditLogs.push(log);
 
@@ -162,7 +198,10 @@ export class Orchestrator {
             subject: draft.subject,
             draft_body: draft.body,
             priority_score: 5,
-            sent: false
+            sent: false,
+            auto_send: false,
+            from_account_id: oauth_account_id,
+            confirmed_by_user: false
           });
         }
       }
@@ -179,7 +218,12 @@ export class Orchestrator {
           'StudyAgent',
           'create_study_plan',
           `Creating plan for ${intent.params.subject || 'General Study'}`,
-          `Generated ${studyOutput.study_schedule.length}-day schedule, ${studyOutput.flashcards.length} flashcards, ${studyOutput.practice_questions.length} practice questions, ${studyOutput.study_blocks?.length || 0} study blocks`
+          `Generated ${studyOutput.study_schedule.length}-day schedule, ${studyOutput.flashcards.length} flashcards, ${studyOutput.practice_questions.length} practice questions, ${studyOutput.study_blocks?.length || 0} study blocks`,
+          oauth_account_id,
+          account.email,
+          undefined,
+          undefined,
+          executionId
         );
         auditLogs.push(log);
 
@@ -211,7 +255,12 @@ export class Orchestrator {
           'CalendarAgent',
           'analyze_and_propose',
           `Analyzing ${intent.params.timeframe} calendar`,
-          `Inspected ${calendarOutput.events_inspected_count} events, proposed ${calendarOutput.proposed_changes.length} changes`
+          `Inspected ${calendarOutput.events_inspected_count} events, proposed ${calendarOutput.proposed_changes.length} changes`,
+          oauth_account_id,
+          account.email,
+          undefined,
+          calendarOutput.proposed_changes.length,
+          executionId
         );
         auditLogs.push(log);
 
@@ -239,9 +288,21 @@ export class Orchestrator {
         'DashboardAgent',
         'compile_snapshot',
         'Compiling all agent outputs',
-        `Created dashboard with ${dashboardSnapshot.quick_actions.length} quick actions`
+        `Created dashboard with ${dashboardSnapshot.quick_actions.length} quick actions`,
+        oauth_account_id,
+        account.email,
+        undefined,
+        undefined,
+        executionId
       );
       auditLogs.push(log);
+
+      await oauthManager.logAccountUsage(
+        oauth_account_id,
+        user_context.user_id,
+        'orchestrator_execution',
+        `/execute/${executionId}`
+      );
 
       const finalSummary = this.generateFinalSummary(
         emailOutput,

@@ -9,6 +9,29 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+export interface OAuthAccount {
+  id: string;
+  user_id: string;
+  provider: 'gmail' | 'google';
+  email: string;
+  access_token: string;
+  refresh_token?: string;
+  token_expiry?: string;
+  scope: string;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AccountUsageLog {
+  id: string;
+  oauth_account_id: string;
+  user_id: string;
+  action: string;
+  api_endpoint?: string;
+  timestamp: string;
+}
+
 export interface UserContext {
   id: string;
   user_id: string;
@@ -19,6 +42,7 @@ export interface UserContext {
   demo_mode: boolean;
   work_hours: string;
   timezone: string;
+  default_oauth_account_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -30,6 +54,11 @@ export interface AuditLog {
   action: string;
   input_summary?: string;
   output_summary?: string;
+  oauth_account_id?: string;
+  user_email?: string;
+  drafts_created?: number;
+  events_changed?: number;
+  run_id?: string;
   timestamp: string;
 }
 
@@ -41,6 +70,8 @@ export interface Execution {
   final_summary?: string;
   dashboard_snapshot?: any;
   status: 'pending' | 'running' | 'completed' | 'failed';
+  oauth_account_id?: string;
+  account_email?: string;
   created_at: string;
   completed_at?: string;
 }
@@ -53,6 +84,11 @@ export interface EmailDraft {
   draft_body: string;
   priority_score: number;
   sent: boolean;
+  auto_send: boolean;
+  from_account_id?: string;
+  sent_at?: string;
+  confirmed_by_user: boolean;
+  confirmation_timestamp?: string;
   created_at: string;
 }
 

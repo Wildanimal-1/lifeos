@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Save } from 'lucide-react';
-import { supabase, UserContext } from '../lib/supabase';
+import { Settings as SettingsIcon, Save, Mail, CheckCircle, AlertCircle, Trash2, Shield } from 'lucide-react';
+import { supabase, UserContext, OAuthAccount } from '../lib/supabase';
+import { oauthManager } from '../lib/oauthManager';
 
 interface SettingsProps {
   userId: string;
@@ -17,9 +18,12 @@ export function Settings({ userId, onUpdate }: SettingsProps) {
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [accounts, setAccounts] = useState<OAuthAccount[]>([]);
+  const [accountsLoading, setAccountsLoading] = useState(true);
 
   useEffect(() => {
     loadContext();
+    loadAccounts();
   }, [userId]);
 
   const loadContext = async () => {
@@ -32,6 +36,57 @@ export function Settings({ userId, onUpdate }: SettingsProps) {
     if (data) {
       setContext(data);
     }
+  };
+
+  const loadAccounts = async () => {
+    setAccountsLoading(true);
+    const userAccounts = await oauthManager.getUserAccounts(userId);
+    setAccounts(userAccounts);
+    setAccountsLoading(false);
+  };
+
+  const handleSetDefault = async (accountId: string) => {
+    const success = await oauthManager.setDefaultAccount(userId, accountId);
+    if (success) {
+      setMessage('Default account updated successfully');
+      await loadAccounts();
+      setTimeout(() => setMessage(''), 3000);
+    } else {
+      setMessage('Error: Failed to update default account');
+    }
+  };
+
+  const handleRemoveAccount = async (accountId: string, email: string) => {
+    if (!confirm(`Are you sure you want to disconnect ${email}? This will stop all operations using this account.`)) {
+      return;
+    }
+
+    const success = await oauthManager.removeAccount(accountId, userId);
+    if (success) {
+      setMessage('Account disconnected successfully');
+      await loadAccounts();
+      setTimeout(() => setMessage(''), 3000);
+    } else {
+      setMessage('Error: Failed to disconnect account');
+    }
+  };
+
+  const getAccountStatus = (account: OAuthAccount) => {
+    if (oauthManager.isTokenExpired(account)) {
+      return { status: 'expired', icon: AlertCircle, color: 'text-red-500 bg-red-50', label: 'Expired' };
+    }
+
+    if (account.token_expiry) {
+      const expiry = new Date(account.token_expiry);
+      const now = new Date();
+      const hoursUntilExpiry = (expiry.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+      if (hoursUntilExpiry < 24) {
+        return { status: 'expiring', icon: AlertCircle, color: 'text-yellow-600 bg-yellow-50', label: 'Expiring Soon' };
+      }
+    }
+
+    return { status: 'valid', icon: CheckCircle, color: 'text-green-600 bg-green-50', label: 'Connected' };
   };
 
   const handleSave = async () => {
@@ -68,7 +123,92 @@ export function Settings({ userId, onUpdate }: SettingsProps) {
         <h2 className="text-xl font-bold">Settings</h2>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-6">
+        <div className="border-b pb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Mail className="w-5 h-5 text-gray-700" />
+            <h3 className="text-lg font-semibold text-gray-900">Connected Accounts</h3>
+          </div>
+
+          {accountsLoading ? (
+            <div className="text-sm text-gray-600">Loading accounts...</div>
+          ) : accounts.length === 0 ? (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-yellow-800">No accounts connected</p>
+                  <p className="text-xs text-yellow-700 mt-1">
+                    Connect a Google account to use email and calendar features.
+                  </p>
+                  <button className="mt-3 px-3 py-1.5 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700 transition-colors">
+                    Connect Google Account
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {accounts.map((account) => {
+                const status = getAccountStatus(account);
+                const StatusIcon = status.icon;
+                return (
+                  <div
+                    key={account.id}
+                    className={`border rounded-lg p-4 ${account.is_default ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-white'}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                          {account.email.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-semibold text-gray-900 truncate">{account.email}</p>
+                            {account.is_default && (
+                              <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded">Default</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-600 mt-0.5">Provider: {account.provider}</p>
+                          <div className={`inline-flex items-center gap-1 mt-2 px-2 py-1 rounded text-xs ${status.color}`}>
+                            <StatusIcon className="w-3 h-3" />
+                            <span>{status.label}</span>
+                          </div>
+                          {account.token_expiry && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Expires: {new Date(account.token_expiry).toLocaleString()}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2 flex-shrink-0">
+                        {!account.is_default && (
+                          <button
+                            onClick={() => handleSetDefault(account.id)}
+                            className="px-3 py-1 text-xs border border-blue-600 text-blue-600 rounded hover:bg-blue-50 transition-colors"
+                          >
+                            Set as Default
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleRemoveAccount(account.id, account.email)}
+                          className="px-3 py-1 text-xs border border-red-600 text-red-600 rounded hover:bg-red-50 transition-colors flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Disconnect
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              <button className="w-full px-4 py-2 border-2 border-dashed border-gray-300 text-gray-600 rounded-lg hover:border-blue-500 hover:text-blue-600 transition-colors text-sm font-medium">
+                + Connect Another Account
+              </button>
+            </div>
+          )}
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Calendar ID
