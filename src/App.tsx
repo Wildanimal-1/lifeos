@@ -93,7 +93,7 @@ function App() {
         user_id: userId,
         calendar_id: 'primary',
         auto_send: false,
-        demo_mode: true,
+        demo_mode: false,
         work_hours: '09:00-18:00',
         timezone: 'Asia/Kolkata'
       };
