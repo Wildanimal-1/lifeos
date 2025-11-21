@@ -86,6 +86,9 @@ export function Settings({ userId, userEmail, onUpdate }: SettingsProps) {
   };
 
   const handleConnectGoogle = async () => {
+    console.log('Connect Google clicked');
+    console.log('OAuth configured:', oauthConfigured);
+
     if (!oauthConfigured) {
       setMessage('Error: OAuth not configured. Please check your .env file.');
       return;
@@ -93,8 +96,11 @@ export function Settings({ userId, userEmail, onUpdate }: SettingsProps) {
 
     try {
       setConnectingOAuth(true);
+      console.log('Initiating OAuth flow...');
       oauthService.initiateGoogleOAuth();
+      console.log('OAuth initiated - should redirect now');
     } catch (error: any) {
+      console.error('OAuth initiation error:', error);
       setConnectingOAuth(false);
       setMessage(`Error: ${error.message}`);
     }

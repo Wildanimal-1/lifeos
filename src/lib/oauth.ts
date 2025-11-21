@@ -55,6 +55,13 @@ export class OAuthService {
   }
 
   initiateGoogleOAuth(): void {
+    console.log('OAuth Service: initiateGoogleOAuth called');
+    console.log('Config:', {
+      clientId: this.config.clientId ? 'SET' : 'MISSING',
+      clientSecret: this.config.clientSecret ? 'SET' : 'MISSING',
+      redirectUri: this.config.redirectUri
+    });
+
     if (!this.isConfigured()) {
       throw new Error('OAuth not configured. Please set VITE_GOOGLE_CLIENT_ID and VITE_GOOGLE_CLIENT_SECRET in .env file.');
     }
@@ -74,6 +81,7 @@ export class OAuthService {
     });
 
     const authUrl = `${GOOGLE_AUTH_URL}?${params.toString()}`;
+    console.log('Redirecting to:', authUrl);
     window.location.href = authUrl;
   }
 
